@@ -10,12 +10,23 @@ const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { TextDecoder } = require('node:util');
+const cors = require('cors');
+const express = require('express');
+const app = express();
+const port = 3000;
 
+app.use(cors({
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+app.use(express.json());
+
+// Hyperledger Fabric network configuration
 const channelName = envOrDefault('CHANNEL_NAME', 'mychannel');
 const chaincodeName = envOrDefault('CHAINCODE_NAME', 'basic');
 const mspId = envOrDefault('MSP_ID', 'Org1MSP');
 
-// Path to crypto materials.
 const cryptoPath = envOrDefault(
     'CRYPTO_PATH',
     path.resolve(
@@ -30,7 +41,6 @@ const cryptoPath = envOrDefault(
     )
 );
 
-// Path to user private key directory.
 const keyDirectoryPath = envOrDefault(
     'KEY_DIRECTORY_PATH',
     path.resolve(
@@ -42,7 +52,6 @@ const keyDirectoryPath = envOrDefault(
     )
 );
 
-// Path to user certificate directory.
 const certDirectoryPath = envOrDefault(
     'CERT_DIRECTORY_PATH',
     path.resolve(
@@ -54,82 +63,155 @@ const certDirectoryPath = envOrDefault(
     )
 );
 
-// Path to peer tls certificate.
 const tlsCertPath = envOrDefault(
     'TLS_CERT_PATH',
     path.resolve(cryptoPath, 'peers', 'peer0.org1.example.com', 'tls', 'ca.crt')
 );
 
-// Gateway peer endpoint.
 const peerEndpoint = envOrDefault('PEER_ENDPOINT', 'localhost:7051');
-
-// Gateway peer SSL host name override.
 const peerHostAlias = envOrDefault('PEER_HOST_ALIAS', 'peer0.org1.example.com');
 
 const utf8Decoder = new TextDecoder();
-const assetId = `asset${String(Date.now())}`;
+let gateway;
+let contract;
 
-async function main() {
-    displayInputParameters();
-
-    // The gRPC client connection should be shared by all Gateway connections to this endpoint.
+async function initializeFabric() {
     const client = await newGrpcConnection();
-
-    const gateway = connect({
+    gateway = connect({
         client,
         identity: await newIdentity(),
         signer: await newSigner(),
         hash: hash.sha256,
-        // Default timeouts for different gRPC calls
-        evaluateOptions: () => {
-            return { deadline: Date.now() + 5000 }; // 5 seconds
-        },
-        endorseOptions: () => {
-            return { deadline: Date.now() + 15000 }; // 15 seconds
-        },
-        submitOptions: () => {
-            return { deadline: Date.now() + 5000 }; // 5 seconds
-        },
-        commitStatusOptions: () => {
-            return { deadline: Date.now() + 60000 }; // 1 minute
-        },
+        evaluateOptions: () => ({ deadline: Date.now() + 10000 }), // Increase to 10 seconds
+        endorseOptions: () => ({ deadline: Date.now() + 20000 }), // Increase to 20 seconds
+        submitOptions: () => ({ deadline: Date.now() + 10000 }), // Increase to 10 seconds
+        commitStatusOptions: () => ({ deadline: Date.now() + 60000 }), // Keep 1 minute for commit
     });
 
-    try {
-        // Get a network instance representing the channel where the smart contract is deployed.
-        const network = gateway.getNetwork(channelName);
-
-        // Get the smart contract from the network.
-        const contract = network.getContract(chaincodeName);
-
-        // Initialize a set of asset data on the ledger using the chaincode 'InitLedger' function.
-        await initLedger(contract);
-
-        // Return all the current assets on the ledger.
-        await getAllAssets(contract);
-
-        // Create a new asset on the ledger.
-        await createAsset(contract);
-
-        // Update an existing asset asynchronously.
-        await transferAssetAsync(contract);
-
-        // Get the asset details by assetID.
-        await readAssetByID(contract);
-
-        // Update an asset which does not exist.
-        await updateNonExistentAsset(contract);
-    } finally {
-        gateway.close();
-        client.close();
-    }
+    const network = gateway.getNetwork(channelName);
+    contract = network.getContract(chaincodeName);
 }
 
-main().catch((error) => {
-    console.error('******** FAILED to run the application:', error);
-    process.exitCode = 1;
+// REST API Endpoints
+
+// 1. InitLedger
+app.post('/ledger/init', async (req, res) => {
+    try {
+        await contract.submitTransaction('InitLedger');
+        res.json({ message: 'Ledger initialized successfully' });
+    } catch (error) {
+        console.error('Error initializing ledger:', error);
+        res.status(500).json({ error: 'Failed to initialize ledger', details: error.message });
+    }
 });
 
+// 2. GetAllAssets
+app.get('/assets', async (req, res) => {
+    try {
+        const resultBytes = await contract.evaluateTransaction('GetAllAssets');
+        const result = JSON.parse(utf8Decoder.decode(resultBytes));
+        res.json(result);
+    } catch (error) {
+        console.error('Error fetching assets:', error);
+        res.status(500).json({ error: 'Failed to retrieve assets', details: error.message });
+    }
+});
+
+// 3. CreateAsset
+app.post('/asset', async (req, res) => {
+    const { id, dealerId, msisdn, mpin, balance, status, transAmount, transType, remarks } = req.body;
+    // Basic input validation
+    if (!id || !dealerId || !msisdn || !mpin || balance === undefined || !status) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        await contract.submitTransaction(
+            'CreateAsset',
+            id,
+            dealerId,
+            msisdn,
+            mpin,
+            balance.toString(),
+            status,
+            transAmount.toString(),
+            transType,
+            remarks
+        );
+        res.json({ message: `Asset ${id} created successfully` });
+    } catch (error) {
+        console.error('Error creating asset:', error);
+        res.status(500).json({ error: 'Failed to create asset', details: error.message });
+    }
+});
+
+// 4. UpdateAsset
+app.put('/asset', async (req, res) => {
+    const { id, dealerId, msisdn, mpin, balance, status, transAmount, transType, remarks } = req.body;
+    // Basic input validation
+    if (!id || !dealerId || !msisdn || !mpin || balance === undefined || !status) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        await contract.submitTransaction(
+            'UpdateAsset',
+            id,
+            dealerId,
+            msisdn,
+            mpin,
+            balance.toString(),
+            status,
+            transAmount.toString(),
+            transType,
+            remarks
+        );
+        res.json({ message: `Asset ${id} updated successfully` });
+    } catch (error) {
+        console.error('Error updating asset:', error);
+        res.status(500).json({ error: 'Failed to update asset', details: error.message });
+    }
+});
+
+// 5. TransferAsset
+app.post('/asset/transfer', async (req, res) => {
+    const { id, newOwner } = req.body;
+    try {
+        const oldOwner = await contract.submitTransaction('TransferAsset', id, newOwner);
+        res.json({ message: `Successfully transferred asset ${id} from ${oldOwner} to ${newOwner}` });
+    } catch (error) {
+        console.error('Error transferring asset:', error);
+        res.status(500).json({ error: 'Failed to transfer asset' });
+    }
+});
+
+// 6. ReadAsset
+app.get('/asset/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const resultBytes = await contract.evaluateTransaction('ReadAsset', id);
+        const result = JSON.parse(utf8Decoder.decode(resultBytes));
+        res.json(result);
+    } catch (error) {
+        console.error('Error reading asset:', error);
+        res.status(500).json({ error: 'Failed to read asset', details: error.message });
+    }
+});
+
+// 7. GetAssetTransactionHistory
+app.get('/asset/:id/history', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const resultBytes = await contract.evaluateTransaction('GetAssetTransactionHistory', id);
+        const result = JSON.parse(utf8Decoder.decode(resultBytes));
+        res.json(result);
+    } catch (error) {
+        console.error('Error fetching transaction history:', error);
+        res.status(500).json({ error: 'Failed to retrieve transaction history', details: error.message });
+    }
+});
+
+// Helper functions for Fabric connection
 async function newGrpcConnection() {
     const tlsRootCert = await fs.readFile(tlsCertPath);
     const tlsCredentials = grpc.credentials.createSsl(tlsRootCert);
@@ -144,6 +226,13 @@ async function newIdentity() {
     return { mspId, credentials };
 }
 
+async function newSigner() {
+    const keyPath = await getFirstDirFileName(keyDirectoryPath);
+    const privateKeyPem = await fs.readFile(keyPath);
+    const privateKey = crypto.createPrivateKey(privateKeyPem);
+    return signers.newPrivateKeySigner(privateKey);
+}
+
 async function getFirstDirFileName(dirPath) {
     const files = await fs.readdir(dirPath);
     const file = files[0];
@@ -153,149 +242,13 @@ async function getFirstDirFileName(dirPath) {
     return path.join(dirPath, file);
 }
 
-async function newSigner() {
-    const keyPath = await getFirstDirFileName(keyDirectoryPath);
-    const privateKeyPem = await fs.readFile(keyPath);
-    const privateKey = crypto.createPrivateKey(privateKeyPem);
-    return signers.newPrivateKeySigner(privateKey);
-}
-
-/**
- * This type of transaction would typically only be run once by an application the first time it was started after its
- * initial deployment. A new version of the chaincode deployed later would likely not need to run an "init" function.
- */
-async function initLedger(contract) {
-    console.log(
-        '\n--> Submit Transaction: InitLedger, function creates the initial set of assets on the ledger'
-    );
-
-    await contract.submitTransaction('InitLedger');
-
-    console.log('*** Transaction committed successfully');
-}
-
-/**
- * Evaluate a transaction to query ledger state.
- */
-async function getAllAssets(contract) {
-    console.log(
-        '\n--> Evaluate Transaction: GetAllAssets, function returns all the current assets on the ledger'
-    );
-
-    const resultBytes = await contract.evaluateTransaction('GetAllAssets');
-
-    const resultJson = utf8Decoder.decode(resultBytes);
-    const result = JSON.parse(resultJson);
-    console.log('*** Result:', result);
-}
-
-/**
- * Submit a transaction synchronously, blocking until it has been committed to the ledger.
- */
-async function createAsset(contract) {
-    console.log(
-        '\n--> Submit Transaction: CreateAsset, creates new asset with ID, Color, Size, Owner and AppraisedValue arguments'
-    );
-
-    await contract.submitTransaction(
-        'CreateAsset',
-        assetId,
-        'yellow',
-        '5',
-        'Tom',
-        '1300'
-    );
-
-    console.log('*** Transaction committed successfully');
-}
-
-/**
- * Submit transaction asynchronously, allowing the application to process the smart contract response (e.g. update a UI)
- * while waiting for the commit notification.
- */
-async function transferAssetAsync(contract) {
-    console.log(
-        '\n--> Async Submit Transaction: TransferAsset, updates existing asset owner'
-    );
-
-    const commit = await contract.submitAsync('TransferAsset', {
-        arguments: [assetId, 'Saptha'],
-    });
-    const oldOwner = utf8Decoder.decode(commit.getResult());
-
-    console.log(
-        `*** Successfully submitted transaction to transfer ownership from ${oldOwner} to Saptha`
-    );
-    console.log('*** Waiting for transaction commit');
-
-    const status = await commit.getStatus();
-    if (!status.successful) {
-        throw new Error(
-            `Transaction ${
-                status.transactionId
-            } failed to commit with status code ${String(status.code)}`
-        );
-    }
-
-    console.log('*** Transaction committed successfully');
-}
-
-async function readAssetByID(contract) {
-    console.log(
-        '\n--> Evaluate Transaction: ReadAsset, function returns asset attributes'
-    );
-
-    const resultBytes = await contract.evaluateTransaction(
-        'ReadAsset',
-        assetId
-    );
-
-    const resultJson = utf8Decoder.decode(resultBytes);
-    const result = JSON.parse(resultJson);
-    console.log('*** Result:', result);
-}
-
-/**
- * submitTransaction() will throw an error containing details of any error responses from the smart contract.
- */
-async function updateNonExistentAsset(contract) {
-    console.log(
-        '\n--> Submit Transaction: UpdateAsset asset70, asset70 does not exist and should return an error'
-    );
-
-    try {
-        await contract.submitTransaction(
-            'UpdateAsset',
-            'asset70',
-            'blue',
-            '5',
-            'Tomoko',
-            '300'
-        );
-        console.log('******** FAILED to return an error');
-    } catch (error) {
-        console.log('*** Successfully caught the error: \n', error);
-    }
-}
-
-/**
- * envOrDefault() will return the value of an environment variable, or a default value if the variable is undefined.
- */
+// Utility to handle environment variables
 function envOrDefault(key, defaultValue) {
     return process.env[key] || defaultValue;
 }
 
-/**
- * displayInputParameters() will print the global scope parameters used by the main driver routine.
- */
-function displayInputParameters() {
-    console.log(`channelName:       ${channelName}`);
-    console.log(`chaincodeName:     ${chaincodeName}`);
-    console.log(`mspId:             ${mspId}`);
-    console.log(`cryptoPath:        ${cryptoPath}`);
-    console.log(`keyDirectoryPath:  ${keyDirectoryPath}`);
-    console.log(`certDirectoryPath: ${certDirectoryPath}`);
-    console.log(`tlsCertPath:       ${tlsCertPath}`);
-    console.log(`peerEndpoint:      ${peerEndpoint}`);
-    console.log(`peerHostAlias:     ${peerHostAlias}`);
-}
+// Start the Express server and initialize Fabric
+app.listen(port, async () => {
+    console.log(`Server running at http://localhost:${port}`);
+    await initializeFabric();
+});
