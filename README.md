@@ -41,8 +41,6 @@ Copy code
 GET https://humble-space-cod-7vrjg46gjvj2p6wg-3000.app.github.dev/assets
 Example Response:
 
-json
-Copy code
 [
     {
         "ID": "asset1",
@@ -67,6 +65,8 @@ Copy code
         "REMARKS": ""
     }
 ]
+
+
 3. Create Asset
 POST /asset
 
