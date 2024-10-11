@@ -28,17 +28,16 @@ Example Response
     "message": "Ledger initialized successfully"
 }
 2. Get All Assets
-GET /assets
-
+Method: GET
+Endpoint: /assets
 Description: Retrieves all assets from the ledger.
 Response:
 200 OK: Returns a list of assets.
 500 Internal Server Error: Error details.
 Example Request:
 
-http
-Copy code
-GET https://humble-space-cod-7vrjg46gjvj2p6wg-3000.app.github.dev/assets
+
+GET https://humble-space-cod-7vrjg46gjvj2p6wg-3000.app.github.dev/assetsExample Response:
 Example Response:
 
 [
@@ -66,25 +65,22 @@ Example Response:
     }
 ]
 
-
 3. Create Asset
 POST /asset
 
 Description: Creates a new asset.
 Request Body:
 
-json
-Copy code
 {
-    "id": "asset3",           
-    "dealerId": "dealer3",   
-    "msisdn": "1122334455",   
-    "mpin": "91011",         
-    "balance": 500,          
-    "status": "active",      
-    "transAmount": 0,        
-    "transType": "",         
-    "remarks": ""            
+    "id": "asset3",
+    "dealerId": "dealer3",
+    "msisdn": "1122334455",
+    "mpin": "91011",
+    "balance": 500,
+    "status": "active",
+    "transAmount": 0,
+    "transType": "",
+    "remarks": ""
 }
 Response:
 200 OK: Asset created successfully.
@@ -92,8 +88,7 @@ Response:
 500 Internal Server Error: Error details.
 Example Request:
 
-http
-Copy code
+
 POST https://humble-space-cod-7vrjg46gjvj2p6wg-3000.app.github.dev/asset
 Content-Type: application/json
 
@@ -110,21 +105,17 @@ Content-Type: application/json
 }
 Example Response:
 
-json
-Copy code
+
 {
     "message": "Asset asset3 created successfully"
 }
 4. Update Asset
-PUT /asset
-
+Method: PUT
+Endpoint: /asset
 Description: Updates an existing asset.
 Request Body: (Same structure as Create Asset)
-
 Example Request:
 
-http
-Copy code
 PUT https://humble-space-cod-7vrjg46gjvj2p6wg-3000.app.github.dev/asset
 Content-Type: application/json
 
@@ -141,8 +132,7 @@ Content-Type: application/json
 }
 Example Response:
 
-json
-Copy code
+
 {
     "message": "Asset asset1 updated successfully"
 }
@@ -152,8 +142,7 @@ POST /asset/transfer
 Description: Transfers an asset to a new owner.
 Request Body:
 
-json
-Copy code
+
 {
     "id": "asset2",           
     "newOwner": "dealer3"    
@@ -163,8 +152,6 @@ Response:
 500 Internal Server Error: Error details.
 Example Request:
 
-http
-Copy code
 POST https://humble-space-cod-7vrjg46gjvj2p6wg-3000.app.github.dev/asset/transfer
 Content-Type: application/json
 
@@ -174,8 +161,6 @@ Content-Type: application/json
 }
 Example Response:
 
-json
-Copy code
 {
     "message": "Successfully transferred asset asset2 from dealer2 to dealer3"
 }
@@ -185,8 +170,7 @@ GET /asset/:id
 Description: Reads the details of a specific asset by ID.
 Example Request:
 
-http
-Copy code
+
 GET https://humble-space-cod-7vrjg46gjvj2p6wg-3000.app.github.dev/asset/asset1
 Example Response:
 
@@ -209,13 +193,11 @@ GET /asset/:id/history
 Description: Retrieves the transaction history for a specific asset.
 Example Request:
 
-http
-Copy code
+
 GET https://humble-space-cod-7vrjg46gjvj2p6wg-3000.app.github.dev/asset/asset1/history
 Example Response:
 
-json
-Copy code
+
 [
     {
         "transactionId": "tx1",
@@ -258,18 +240,15 @@ Copy the content provided above and paste it into the file.
 Commit and Push:
 Save the file and close the editor.
 Commit the changes:
-bash
-Copy code
+
 git add README.md
 git commit -m "Update README file with sample API requests and responses"
 Push to your GitHub repository:
-bash
-Copy code
+
 git push origin main
 This updated README provides clear examples for each API endpoint, making it easier for users to understand how to use the API effectively. Let me know if you need any more changes or additions!
 
-vbnet
-Copy code
+
 
 You can copy and paste this entire block directly into your README file. If you need further adjustments or a different structure, just let me know!
 
