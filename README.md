@@ -27,7 +27,6 @@ Example Response
 {
     "message": "Ledger initialized successfully"
 }
-
 2. Get All Assets
 GET /assets
 
@@ -35,10 +34,15 @@ Description: Retrieves all assets from the ledger.
 Response:
 200 OK: Returns a list of assets.
 500 Internal Server Error: Error details.
-Example Request
+Example Request:
 
+http
+Copy code
 GET https://humble-space-cod-7vrjg46gjvj2p6wg-3000.app.github.dev/assets
-Example Response
+Example Response:
+
+json
+Copy code
 [
     {
         "ID": "asset1",
@@ -67,29 +71,31 @@ Example Response
 POST /asset
 
 Description: Creates a new asset.
-Request Body
- 
-  
+Request Body:
+
+json
+Copy code
 {
-    "id": "asset3",           // Required: Asset ID
-    "dealerId": "dealer3",   // Required: Dealer ID
-    "msisdn": "1122334455",   // Required: MSISDN
-    "mpin": "91011",         // Required: MPIN
-    "balance": 500,          // Required: Balance
-    "status": "active",      // Required: Status (active/inactive)
-    "transAmount": 0,        // Required: Transaction Amount
-    "transType": "",         // Required: Transaction Type
-    "remarks": ""            // Optional: Remarks
+    "id": "asset3",           
+    "dealerId": "dealer3",   
+    "msisdn": "1122334455",   
+    "mpin": "91011",         
+    "balance": 500,          
+    "status": "active",      
+    "transAmount": 0,        
+    "transType": "",         
+    "remarks": ""            
 }
 Response:
 200 OK: Asset created successfully.
 400 Bad Request: Missing required fields.
 500 Internal Server Error: Error details.
-Example Request
+Example Request:
+
 http
-  
+Copy code
 POST https://humble-space-cod-7vrjg46gjvj2p6wg-3000.app.github.dev/asset
-Content-Type: application/ 
+Content-Type: application/json
 
 {
     "id": "asset3",
@@ -102,9 +108,10 @@ Content-Type: application/
     "transType": "",
     "remarks": ""
 }
-Example Response
- 
-  
+Example Response:
+
+json
+Copy code
 {
     "message": "Asset asset3 created successfully"
 }
@@ -112,14 +119,14 @@ Example Response
 PUT /asset
 
 Description: Updates an existing asset.
-Request Body
-(Same structure as Create Asset)
+Request Body: (Same structure as Create Asset)
 
-Example Request
+Example Request:
+
 http
-  
+Copy code
 PUT https://humble-space-cod-7vrjg46gjvj2p6wg-3000.app.github.dev/asset
-Content-Type: application/ 
+Content-Type: application/json
 
 {
     "id": "asset1",
@@ -132,9 +139,10 @@ Content-Type: application/
     "transType": "credit",
     "remarks": "Updated balance"
 }
-Example Response
- 
-  
+Example Response:
+
+json
+Copy code
 {
     "message": "Asset asset1 updated successfully"
 }
@@ -142,29 +150,32 @@ Example Response
 POST /asset/transfer
 
 Description: Transfers an asset to a new owner.
-Request Body
- 
-  
+Request Body:
+
+json
+Copy code
 {
-    "id": "asset2",           // Required: Asset ID
-    "newOwner": "dealer3"     // Required: New Owner ID
+    "id": "asset2",           
+    "newOwner": "dealer3"    
 }
 Response:
 200 OK: Asset transferred successfully.
 500 Internal Server Error: Error details.
-Example Request
+Example Request:
+
 http
-  
+Copy code
 POST https://humble-space-cod-7vrjg46gjvj2p6wg-3000.app.github.dev/asset/transfer
-Content-Type: application/ 
+Content-Type: application/json
 
 {
     "id": "asset2",
     "newOwner": "dealer3"
 }
-Example Response
- 
-  
+Example Response:
+
+json
+Copy code
 {
     "message": "Successfully transferred asset asset2 from dealer2 to dealer3"
 }
@@ -172,13 +183,15 @@ Example Response
 GET /asset/:id
 
 Description: Reads the details of a specific asset by ID.
-Example Request
+Example Request:
+
 http
-  
+Copy code
 GET https://humble-space-cod-7vrjg46gjvj2p6wg-3000.app.github.dev/asset/asset1
-Example Response
- 
-  
+Example Response:
+
+json
+Copy code
 {
     "ID": "asset1",
     "DEALERID": "dealer1",
@@ -194,13 +207,15 @@ Example Response
 GET /asset/:id/history
 
 Description: Retrieves the transaction history for a specific asset.
-Example Request
+Example Request:
+
 http
-  
+Copy code
 GET https://humble-space-cod-7vrjg46gjvj2p6wg-3000.app.github.dev/asset/asset1/history
-Example Response
- 
-  
+Example Response:
+
+json
+Copy code
 [
     {
         "transactionId": "tx1",
@@ -223,15 +238,12 @@ Testing with Postman
 You can use Postman to test these APIs. Here are the steps:
 
 Install Postman: Download and install Postman from postman.com.
-
 Set Up the Request:
-
 Open Postman and create a new request.
 Set the request type (GET, POST, PUT) based on the API you want to test.
 Enter the full API URL (e.g., https://humble-space-cod-7vrjg46gjvj2p6wg-3000.app.github.dev/assets).
-For POST and PUT requests, select the Body tab and set it to raw and  . Paste the required   body.
+For POST and PUT requests, select the Body tab and set it to raw and JSON. Paste the required JSON body.
 Send the Request: Click the Send button and observe the response in Postman.
-
 Conclusion
 This application provides a simple way to interact with a Hyperledger Fabric network through REST APIs. Feel free to test the endpoints and explore the functionality!
 
@@ -239,25 +251,29 @@ For any issues or feature requests, please create an issue in this repository.
 
 Instructions to Add the Updated README to Your GitHub Repository
 Create or Update the README File:
-
 Open your terminal or command prompt.
 Navigate to your project directory.
 Open README.md in a text editor.
 Copy the content provided above and paste it into the file.
 Commit and Push:
-
 Save the file and close the editor.
 Commit the changes:
-  
+bash
+Copy code
 git add README.md
 git commit -m "Update README file with sample API requests and responses"
 Push to your GitHub repository:
-
-  
+bash
+Copy code
 git push origin main
 This updated README provides clear examples for each API endpoint, making it easier for users to understand how to use the API effectively. Let me know if you need any more changes or additions!
 
 vbnet
-  
+Copy code
 
-Feel free to copy this entire block into your README file. Let me know if you need further adjustments!
+You can copy and paste this entire block directly into your README file. If you need further adjustments or a different structure, just let me know!
+
+
+
+
+
