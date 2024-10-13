@@ -1,7 +1,6 @@
 
 ##### If you'd like to test all the API endpoints using Postman, here are examples for each API request you can use with the provided base URL. Follow the steps below to make the API calls.
 
-]
  #### Steps to Install and Setup the Network
 #### Navigate to Your Project Directory:
 
