@@ -156,4 +156,5 @@ GET /asset/:id/history
 #### Example:
 
 GET http://localhost:3000/asset/asset1/history
-This guide will help you set up and run your Hyperledger Fabric network, deploy the asset transfer chaincode, and use a Node.js application to interact with the blockchain via RESTful APIs.
+
+###### This guide will help you set up and run your Hyperledger Fabric network, deploy the asset transfer chaincode, and use a Node.js application to interact with the blockchain via RESTful APIs.
