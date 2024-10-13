@@ -17,9 +17,9 @@ curl -sSL https://bit.ly/2ysbOFE | bash -s -- 2.5.0
 
 
 cd fabric-samples/test-network
-Stop Any Existing Network:
 
-bash
+## Stop Any Existing Network:
+
 
 ./network.sh down
 #### Start the Network with CA Enabled and Create a Channel:
